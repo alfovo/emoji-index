@@ -1,0 +1,27 @@
+<!<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" name="viewport" content="width-device-width, initial-scale=1, shrink-to-fit=no">
+  <link type="text/css" rel="stylesheet" href="/style.css">
+  <link href="https://fonts.googleapis.com/css?family=Baloo&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <h1>{{header}}</h1>
+  </header>
+  <div class="flex-container">
+    {{#items}}
+      <h2><strong>{{name}}</strong></h2>
+      {{#emojis}}
+        <li>{{moji}} x {{value}}</li>
+      {{/emojis}}
+    {{/items}}
+  </div>
+  <div class="flex-container">
+    <h2><strong>Favorite Emojis</strong></h2>
+    {{#favorites}}
+      <li>{{name}}: {{moji}} x {{value}}</li>
+    {{/favorites}}
+  </div>
+</body>
+</html>
