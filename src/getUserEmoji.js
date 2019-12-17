@@ -24,12 +24,12 @@ const ignored_users = [
 ]
 let favoriteEmojis = []
 
-async function allConversationLookup(url, token, channel) {
+async function allConversationLookup(url, token, channel, message_limit) {
   const response = await request({
     uri: url,
     method: 'GET',
     json: true,
-    qs: { token: token, channel: channel, limit: 1000 },
+    qs: { token: token, channel: channel, limit: message_limit },
     simple: false,
     resolveWithFullResponse: true
   })
@@ -158,7 +158,7 @@ function tallyEmojis(messages) {
   return userIdEmojiMap
 }
 
-async function tallyForAllChannels(token) {
+async function tallyForAllChannels(token, ignored_emojis, message_limit) {
   const allChannels = await allChannelsLookup(channelsUrl, token)
   let userIdEmojiMap = {}
   for (var channel of allChannels) {
@@ -166,7 +166,8 @@ async function tallyForAllChannels(token) {
       let messages = await allConversationLookup(
         conversationUrl,
         token,
-        channel.id
+        channel.id,
+        message_limit
       )
       let channelEmojisTally = tallyEmojis(messages)
       if (Object.keys(channelEmojisTally).length > 0) {
@@ -183,10 +184,10 @@ async function tallyForAllChannels(token) {
       }
     }
   }
-  return replaceNamesEmojis(userIdEmojiMap, token)
+  return replaceNamesEmojis(userIdEmojiMap, token, ignored_emojis)
 }
 
-async function replaceNamesEmojis(userIdEmojiMap, token) {
+async function replaceNamesEmojis(userIdEmojiMap, token, ignored_emojis) {
   let nameEmojiMap = []
   const userInfo = await allUsersLookup(usersUrl, token)
   const users = getUserIdNameMap(userInfo)
@@ -209,7 +210,10 @@ async function replaceNamesEmojis(userIdEmojiMap, token) {
             value: emojiMap[emojiName]
           }
         }
-        if (newValue.value > favoriteValue.value) {
+        if (
+          newValue.value > favoriteValue.value &&
+          !ignored_emojis.includes(emojiName)
+        ) {
           favoriteValue = {
             ...newValue,
             favorite: true
