@@ -218,7 +218,6 @@ async function replaceNamesEmojis(userIdEmojiMap, token) {
         newValues.push(newValue)
       }
       if (favoriteValue.value > 1) {
-        newValues.push(favoriteValue)
         favoriteEmojis.push({ ...favoriteValue, name: users[userId] })
       }
       nameEmojiMap.push({ name: users[userId], emojis: newValues })
