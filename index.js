@@ -9,7 +9,7 @@ require('dotenv').config()
 const port = process.env.PORT || 3000
 const token = process.env.TOKEN
 const ignored_emojis = process.env.IGNORED_EMOJIS.split(' ') || []
-const message_limit = process.env.MESSAGE_LIMIT || 10
+const message_limit = process.env.MESSAGE_LIMIT || 1000
 
 app.engine('html', mustacheExpress())
 app.set('views', path.join(__dirname, 'src/views'))

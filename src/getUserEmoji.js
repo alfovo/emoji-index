@@ -89,15 +89,13 @@ function listToTally(array) {
   return countObj
 }
 
-function mergeTallies(oldTally, newTally) {
-  let mergedTally = { ...oldTally }
-  if (newTally && newTally !== null) {
-    for (let emojiName in newTally) {
-      if (oldTally[emojiName]) {
-        mergedTally[emojiName] = oldTally[emojiName] + newTally[emojiName]
-      } else {
-        mergedTally[emojiName] = newTally[emojiName]
-      }
+function mergeTallies(tallies) {
+  let mergedTally = {}
+  for (let tally in tallies) {
+    if (mergedTally[tallies[tally]]) {
+      mergedTally[tallies[tally]].push(tally)
+    } else {
+      mergedTally[tallies[tally]] = [tally]
     }
   }
   return mergedTally
@@ -136,21 +134,20 @@ function getEmojis(regex, text) {
   return cleanedEmojis
 }
 
-function tallyEmojis(messages) {
+function getEmojiList(messages) {
   let userIdEmojiMap = {}
   if (messages && messages.length > 0) {
     let emojiRegex = /\:([a-z1-9-_]*?)\:/g
     for (var message of messages) {
       let emojis = getEmojis(emojiRegex, message.text)
       if (emojis && emojis.length > 0) {
-        let emojiCount = listToTally(emojis)
         if (userIdEmojiMap[message.user]) {
-          userIdEmojiMap[message.user] = mergeTallies(
-            userIdEmojiMap[message.user],
-            emojiCount
-          )
+          userIdEmojiMap[message.user] = [
+            ...userIdEmojiMap[message.user],
+            ...emojis
+          ]
         } else if (message.user) {
-          userIdEmojiMap[message.user] = emojiCount
+          userIdEmojiMap[message.user] = emojis
         }
       }
     }
@@ -169,22 +166,27 @@ async function tallyForAllChannels(token, ignored_emojis, message_limit) {
         channel.id,
         message_limit
       )
-      let channelEmojisTally = tallyEmojis(messages)
-      if (Object.keys(channelEmojisTally).length > 0) {
-        for (let userId in channelEmojisTally) {
+      let channelUserEmojisMap = getEmojiList(messages)
+      if (Object.keys(channelUserEmojisMap).length > 0) {
+        for (let userId in channelUserEmojisMap) {
           if (userIdEmojiMap[userId]) {
-            userIdEmojiMap[userId] = mergeTallies(
-              userIdEmojiMap[userId],
-              channelEmojisTally[userId]
-            )
+            userIdEmojiMap[userId] = [
+              ...userIdEmojiMap[userId],
+              ...channelUserEmojisMap[userId]
+            ]
           } else {
-            userIdEmojiMap[userId] = channelEmojisTally[userId]
+            userIdEmojiMap[userId] = channelUserEmojisMap[userId]
           }
         }
       }
     }
   }
-  return replaceNamesEmojis(userIdEmojiMap, token, ignored_emojis)
+
+  let userIdEmojiTally = {}
+  for (userId in userIdEmojiMap) {
+    userIdEmojiTally[userId] = listToTally(userIdEmojiMap[userId])
+  }
+  return replaceNamesEmojis(userIdEmojiTally, token, ignored_emojis)
 }
 
 async function replaceNamesEmojis(userIdEmojiMap, token, ignored_emojis) {
@@ -193,38 +195,23 @@ async function replaceNamesEmojis(userIdEmojiMap, token, ignored_emojis) {
   const users = getUserIdNameMap(userInfo)
   for (let [userId, emojiMap] of Object.entries(userIdEmojiMap)) {
     if (users[userId] && Object.keys(emojiMap).length > 0) {
-      let newValues = []
-      let favoriteValue = {
-        value: 1
-      }
-      for (let emojiName in emojiMap) {
-        let newValue = {}
-        if (emoji.get([emojiName])) {
-          newValue = {
-            moji: emoji.get([emojiName]),
-            value: emojiMap[emojiName]
-          }
-        } else {
-          newValue = {
-            moji: emojiName,
-            value: emojiMap[emojiName]
-          }
+      let newMojisTally = mergeTallies(emojiMap)
+      let mojiImagesTally = []
+      for (value in newMojisTally) {
+        let mojiImagesArray = []
+        for (let mojiName of newMojisTally[value]) {
+          mojiImagesArray.push(emoji.get([mojiName]))
         }
-        if (
-          newValue.value > favoriteValue.value &&
-          !ignored_emojis.includes(emojiName)
-        ) {
-          favoriteValue = {
-            ...newValue,
-            favorite: true
-          }
-        }
-        newValues.push(newValue)
+        mojiImagesTally.push({ moji: mojiImagesArray, value: value })
       }
-      if (favoriteValue.value > 1) {
-        favoriteEmojis.push({ ...favoriteValue, name: users[userId] })
-      }
-      nameEmojiMap.push({ name: users[userId], emojis: newValues })
+
+      favoriteEmojis.push({
+        moji: mojiImagesTally[mojiImagesTally.length - 1].moji,
+        value: mojiImagesTally[mojiImagesTally.length - 1].value,
+        name: users[userId]
+      })
+
+      nameEmojiMap.push({ name: users[userId], emojis: mojiImagesTally })
     }
   }
   return nameEmojiMap
@@ -234,6 +221,7 @@ module.exports = {
   listToTally: listToTally,
   mergeTallies: mergeTallies,
   getEmojis: getEmojis,
+  getEmojiList: getEmojiList,
   tallyForAllChannels: tallyForAllChannels,
   favoriteEmojis: favoriteEmojis
 }
