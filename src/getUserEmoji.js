@@ -102,15 +102,15 @@ function mergeTallies(tallies) {
   return mergedTally
 }
 
-function convertToArrayFormat(mergedTally){
+function convertToArrayFormat(mergedTally) {
   let mojiCountsArray = []
   for (let [count, mojis] of Object.entries(mergedTally)) {
-    mojiCountsArray.push({moji: mojis, value: count})
+    mojiCountsArray.push({ moji: mojis, value: count })
   }
   return mojiCountsArray
 }
 
-function formatMojiData(emojiList){
+function formatMojiData(emojiList) {
   const emojiCounts = listToTally(emojiList)
   const mergedEmojiCounts = mergeTallies(emojiCounts)
   return convertToArrayFormat(mergedEmojiCounts)
@@ -204,11 +204,21 @@ async function tallyForAllChannels(token, ignored_emojis, message_limit) {
 
 async function replaceNamesEmojis(userIdEmojiList, token, ignored_emojis) {
   let userNameEmojiMap = []
+  let formattedMojis = []
   const userInfo = await allUsersLookup(usersUrl, token)
   const users = getUserIdNameMap(userInfo)
-  for (let [userId, emojiMap] of Object.entries(userIdEmojiList)) {
-    if (users[userId] && Object.keys(emojiMap).length > 0) {
-      userNameEmojiMap.push({ name: users[userId], emojis: formatMojiData(emojiMap) })
+  for (let [userId, emojiList] of Object.entries(userIdEmojiList)) {
+    if (users[userId] && Object.keys(emojiList).length > 0) {
+      formattedMojis = formatMojiData(emojiList)
+      userNameEmojiMap.push({
+        name: users[userId],
+        emojis: formattedMojis
+      })
+      favoriteEmojis.push({
+        moji: formattedMojis[formattedMojis.length - 1].moji,
+        value: formattedMojis[formattedMojis.length - 1].value,
+        name: users[userId]
+      })
     }
   }
   return userNameEmojiMap
