@@ -20,29 +20,6 @@ describe('the emojiCounter', () => {
       ':woman-facepalming:': 1
     })
   })
-  it('combines tallys to create a new tally', () => {
-    const tallies = {
-      robot_face: 5,
-      bento: 1,
-      dog: 3,
-      stew: 3,
-      memo: 1,
-      eyes: 1,
-      'star-struck': 1,
-      wink: 1,
-      slightly_smiling_face: 2,
-      bow: 1,
-      seedling: 1
-    }
-
-    const expectedTally = {
-      1: [ 'bento', 'memo', 'eyes', 'star-struck', 'wink', 'bow', 'seedling' ],
-      2: [ 'slightly_smiling_face' ],
-      3: [ 'dog', 'stew' ],
-      5: ['robot_face']
-    }
-    expect(mergeTallies(tallies)).toEqual(expectedTally)
-  })
 
   it('gets emojis', () => {
     const emojiRegex = /\:([a-z1-9-_]*?)\:/g
@@ -121,5 +98,29 @@ describe('the emojiCounter', () => {
       robot_face: 3,
       slightly_smiling_face: 10
     })
+  })
+
+  it('combines tallys to create a new tally', () => {
+    const tallies = {
+      robot_face: 5,
+      bento: 1,
+      dog: 3,
+      stew: 3,
+      memo: 1,
+      eyes: 1,
+      'star-struck': 1,
+      wink: 1,
+      slightly_smiling_face: 2,
+      bow: 1,
+      seedling: 1
+    }
+
+    const expectedTally = {
+      1: [ '🍱', '📝', '👀', '🤩', '😉', '🙇‍♂️', '🌱' ],
+      2: [ '🙂' ],
+      3: [ '🐶', '🍲' ],
+      5: ['🤖']
+    }
+    expect(mergeTallies(tallies)).toEqual(expectedTally)
   })
 })

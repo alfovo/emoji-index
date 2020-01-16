@@ -75,10 +75,10 @@ function getUserIdNameMap(userInfo) {
   return usersMap
 }
 
-function listToTally(array) {
+function listToTally(emojiList) {
   let countObj = {}
-  if (array && array.length > 0) {
-    for (var item of array) {
+  if (emojiList && emojiList.length > 0) {
+    for (var item of emojiList) {
       if (countObj[item]) {
         countObj[item]++
       } else {
@@ -91,14 +91,29 @@ function listToTally(array) {
 
 function mergeTallies(tallies) {
   let mergedTally = {}
-  for (let tally in tallies) {
-    if (mergedTally[tallies[tally]]) {
-      mergedTally[tallies[tally]].push(tally)
+  for (let [emojiName, count] of Object.entries(tallies)) {
+    let moji = emoji.get([emojiName])
+    if (mergedTally[count]) {
+      mergedTally[count].push(moji)
     } else {
-      mergedTally[tallies[tally]] = [tally]
+      mergedTally[count] = [moji]
     }
   }
   return mergedTally
+}
+
+function convertToArrayFormat(mergedTally){
+  let mojiCountsArray = []
+  for (let [count, mojis] of Object.entries(mergedTally)) {
+    mojiCountsArray.push({moji: mojis, value: count})
+  }
+  return mojiCountsArray
+}
+
+function formatMojiData(emojiList){
+  const emojiCounts = listToTally(emojiList)
+  const mergedEmojiCounts = mergeTallies(emojiCounts)
+  return convertToArrayFormat(mergedEmojiCounts)
 }
 
 function getEmojis(regex, text) {
@@ -113,7 +128,9 @@ function getEmojis(regex, text) {
     'hbrreprint',
     'hc',
     'abt',
-    'li'
+    'li',
+    'so',
+    'or'
   ]
   let emojis = text.match(regex)
   if (emojis === null) {
@@ -157,7 +174,7 @@ function getEmojiList(messages) {
 
 async function tallyForAllChannels(token, ignored_emojis, message_limit) {
   const allChannels = await allChannelsLookup(channelsUrl, token)
-  let userIdEmojiMap = {}
+  let userIdEmojiList = {}
   for (var channel of allChannels) {
     if (channel.is_member === true) {
       let messages = await allConversationLookup(
@@ -169,52 +186,32 @@ async function tallyForAllChannels(token, ignored_emojis, message_limit) {
       let channelUserEmojisMap = getEmojiList(messages)
       if (Object.keys(channelUserEmojisMap).length > 0) {
         for (let userId in channelUserEmojisMap) {
-          if (userIdEmojiMap[userId]) {
-            userIdEmojiMap[userId] = [
-              ...userIdEmojiMap[userId],
+          if (userIdEmojiList[userId]) {
+            userIdEmojiList[userId] = [
+              ...userIdEmojiList[userId],
               ...channelUserEmojisMap[userId]
             ]
           } else {
-            userIdEmojiMap[userId] = channelUserEmojisMap[userId]
+            userIdEmojiList[userId] = channelUserEmojisMap[userId]
           }
         }
       }
     }
   }
 
-  let userIdEmojiTally = {}
-  for (userId in userIdEmojiMap) {
-    userIdEmojiTally[userId] = listToTally(userIdEmojiMap[userId])
-  }
-  return replaceNamesEmojis(userIdEmojiTally, token, ignored_emojis)
+  return replaceNamesEmojis(userIdEmojiList, token, ignored_emojis)
 }
 
-async function replaceNamesEmojis(userIdEmojiMap, token, ignored_emojis) {
-  let nameEmojiMap = []
+async function replaceNamesEmojis(userIdEmojiList, token, ignored_emojis) {
+  let userNameEmojiMap = []
   const userInfo = await allUsersLookup(usersUrl, token)
   const users = getUserIdNameMap(userInfo)
-  for (let [userId, emojiMap] of Object.entries(userIdEmojiMap)) {
+  for (let [userId, emojiMap] of Object.entries(userIdEmojiList)) {
     if (users[userId] && Object.keys(emojiMap).length > 0) {
-      let newMojisTally = mergeTallies(emojiMap)
-      let mojiImagesTally = []
-      for (value in newMojisTally) {
-        let mojiImagesArray = []
-        for (let mojiName of newMojisTally[value]) {
-          mojiImagesArray.push(emoji.get([mojiName]))
-        }
-        mojiImagesTally.push({ moji: mojiImagesArray, value: value })
-      }
-
-      favoriteEmojis.push({
-        moji: mojiImagesTally[mojiImagesTally.length - 1].moji,
-        value: mojiImagesTally[mojiImagesTally.length - 1].value,
-        name: users[userId]
-      })
-
-      nameEmojiMap.push({ name: users[userId], emojis: mojiImagesTally })
+      userNameEmojiMap.push({ name: users[userId], emojis: formatMojiData(emojiMap) })
     }
   }
-  return nameEmojiMap
+  return userNameEmojiMap
 }
 
 module.exports = {
