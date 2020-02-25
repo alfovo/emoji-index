@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-var request = require('request-promise-native')
-var emoji = require('node-emoji')
+const request = require('request-promise-native')
+const emoji = require('node-emoji')
 
 const mainUrl = 'https://slack.com/api/'
 const conversationUrl = mainUrl + 'conversations.history'
@@ -22,7 +22,6 @@ const ignored_users = [
   'Stack Overflow for Teams',
   'Toast'
 ]
-let favoriteEmojis = []
 
 async function allConversationLookup(url, token, channel, message_limit) {
   const response = await request({
@@ -203,14 +202,15 @@ async function tallyForAllChannels(token, ignored_emojis, message_limit) {
 }
 
 async function replaceNamesEmojis(userIdEmojiList, token, ignored_emojis) {
-  let userNameEmojiMap = []
+  let userNameEmojiMaps = []
   let formattedMojis = []
+  let favoriteEmojis = []
   const userInfo = await allUsersLookup(usersUrl, token)
   const users = getUserIdNameMap(userInfo)
   for (let [userId, emojiList] of Object.entries(userIdEmojiList)) {
     if (users[userId] && Object.keys(emojiList).length > 0) {
       formattedMojis = formatMojiData(emojiList)
-      userNameEmojiMap.push({
+      userNameEmojiMaps.push({
         name: users[userId],
         emojis: formattedMojis
       })
@@ -221,7 +221,7 @@ async function replaceNamesEmojis(userIdEmojiList, token, ignored_emojis) {
       })
     }
   }
-  return userNameEmojiMap
+  return { userNameEmojiMaps: userNameEmojiMaps, favoriteEmojis: favoriteEmojis }
 }
 
 module.exports = {
@@ -229,6 +229,5 @@ module.exports = {
   mergeTallies: mergeTallies,
   getEmojis: getEmojis,
   getEmojiList: getEmojiList,
-  tallyForAllChannels: tallyForAllChannels,
-  favoriteEmojis: favoriteEmojis
+  tallyForAllChannels: tallyForAllChannels
 }

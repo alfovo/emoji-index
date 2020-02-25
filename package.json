@@ -6,7 +6,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "dev": "nodemon ./index.js",
-    "ui": "browser-sync start --proxy=localhost:8000 --files='**/*.css, **/*.html, **/*.js' --ignore=node_modules --reload-delay 10 --no-ui --no-notify"
+    "start": "node index.js"
   },
   "dependencies": {
     "dotenv": "^8.2.0",
@@ -20,15 +20,16 @@
     "@babel/cli": "^7.2.3",
     "@babel/core": "^7.3.3",
     "@babel/node": "^7.2.2",
-    "@babel/plugin-proposal-class-properties": "^7.3.4",
     "@babel/plugin-syntax-dynamic-import": "^7.2.0",
     "@babel/plugin-transform-runtime": "^7.3.4",
-    "@babel/polyfill": "^7.2.5",
     "@babel/preset-env": "^7.3.1",
     "@babel/runtime": "^7.3.4",
     "babel-core": "^7.0.0-bridge.0",
     "babel-jest": "^24.1.0",
     "jest": "^24.9.0",
     "prettier": "1.14.3"
+  },
+  "engines": {
+    "node": "12.x"
   }
 }
