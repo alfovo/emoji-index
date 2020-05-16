@@ -17,6 +17,15 @@ body {
   box-shadow: 0 0 26px rgba(0, 0, 0, 0.13);
 }
 
+@media only screen and (max-width: 900px) {
+  body {
+    margin: 0px auto;
+  }
+  li {
+    margin-right: 3em;
+  }
+}
+
 header {
   text-align: center;
   background: #cfd8dc;
@@ -26,7 +35,6 @@ header {
 
 h1 {
   font-family: 'Baloo', cursive;
-  /* text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4); */
   line-height: 3em;
   margin-top: 0.5em;
   margin-bottom: 1em;
