@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 const request = require('request-promise-native')
 const emoji = require('node-emoji')
 
@@ -23,46 +22,21 @@ const ignored_users = [
   'Toast'
 ]
 
-async function allConversationLookup(url, token, channel, message_limit) {
-  const response = await request({
-    uri: url,
+async function apiRequest(uri, qs) {
+  return (await request({
+    uri,
     method: 'GET',
     json: true,
-    qs: { token: token, channel: channel, limit: message_limit },
+    qs,
     simple: false,
     resolveWithFullResponse: true
-  })
-  return response.body.messages
-}
-
-async function allUsersLookup(url, token) {
-  const response = await request({
-    uri: url,
-    method: 'GET',
-    json: true,
-    qs: { token: token },
-    simple: false,
-    resolveWithFullResponse: true
-  })
-  return response.body.members
-}
-
-async function allChannelsLookup(url, token) {
-  const response = await request({
-    uri: url,
-    method: 'GET',
-    json: true,
-    qs: { token: token },
-    simple: false,
-    resolveWithFullResponse: true
-  })
-  return response.body.channels
+  })).body
 }
 
 function listToTally(emojiList) {
   let tally = {}
-  if (emojiList && emojiList.length > 0) {
-    for (var item of emojiList) {
+  if (emojiList) {
+    for (let item of emojiList) {
       if (tally[item]) {
         tally[item]++
       } else {
@@ -87,11 +61,10 @@ function mergeTallies(tallies) {
 }
 
 function convertToArrayFormat(mergedTally) {
-  let mojiCountsArray = []
-  for (let [count, mojis] of Object.entries(mergedTally)) {
-    mojiCountsArray.push({ moji: mojis, value: count })
-  }
-  return mojiCountsArray
+  return Object.entries(mergedTally).map(([value, mojis]) => ({
+    value,
+    mojis
+  }))
 }
 
 function formatMojiData(emojiList) {
@@ -120,24 +93,19 @@ function getEmojis(regex, text) {
   if (emojis === null) {
     return null
   }
-  let cleanedEmojis = []
-  emojis.forEach(emoji => {
-    let strippedEmoji = emoji.replace(/:/gi, '')
-    // remove skin tones, numbers and aws crap
-    if (
+  let cleanedEmojis = emojis.map(emoji => emoji.replace(/:/gi, '')).filter(
+    strippedEmoji =>
+      // remove skin tones, numbers and aws crap
       !excluded.includes(strippedEmoji) &&
       isNaN(strippedEmoji) &&
       !strippedEmoji.includes('skin-tone')
-    ) {
-      cleanedEmojis.push(strippedEmoji)
-    }
-  })
+  )
   return cleanedEmojis
 }
 
 function getEmojiList(messages) {
   let userIdEmojiMap = {}
-  if (messages && messages.length > 0) {
+  if (messages) {
     let emojiRegex = /\:([a-z1-9-_]*?)\:/g
     for (var message of messages) {
       let emojis = getEmojis(emojiRegex, message.text)
@@ -158,7 +126,7 @@ function getEmojiList(messages) {
 
 function getUserIdNameMap(userInfo) {
   const usersMap = {}
-  if (userInfo && userInfo.length > 0) {
+  if (userInfo) {
     for (var user of userInfo) {
       if (user.deleted !== true && !ignored_users.includes(user.real_name)) {
         usersMap[user.id] = user.real_name
@@ -169,11 +137,11 @@ function getUserIdNameMap(userInfo) {
 }
 
 async function replaceNamesEmojis(token, userIdEmojiList) {
-  let userNameEmojiMaps = []
-  let formattedMojis = []
-  let favoriteEmojis = []
-  const allUsers = await allUsersLookup(usersUrl, token)
-  const users = await getUserIdNameMap(allUsers)
+  const userNameEmojiMaps = []
+  const formattedMojis = []
+  const favoriteEmojis = []
+  const { members } = await apiRequest(usersUrl, { token })
+  const users = getUserIdNameMap(members)
   for (let [userId, emojiList] of Object.entries(userIdEmojiList)) {
     if (users[userId] && Object.keys(emojiList).length > 0) {
       formattedMojis = formatMojiData(emojiList)
@@ -189,33 +157,32 @@ async function replaceNamesEmojis(token, userIdEmojiList) {
     }
   }
   return {
-    userNameEmojiMaps: userNameEmojiMaps,
-    favoriteEmojis: favoriteEmojis
+    userNameEmojiMaps,
+    favoriteEmojis
   }
 }
 
 async function tallyForAllChannels(token, message_limit) {
-  const allChannels = await allChannelsLookup(channelsUrl, token)
-  let userIdEmojiList = {}
-  for (var channel of allChannels) {
+  const { channels } = await apiRequest(channelsUrl, {
+    token
+  })
+  const userIdEmojiList = {}
+  for (let channel of channels) {
     if (channel.is_member === true) {
-      let messages = await allConversationLookup(
-        conversationUrl,
+      const { messages } = await apiRequest(conversationUrl, {
         token,
-        channel.id,
-        message_limit
-      )
-      let channelUserEmojisMap = getEmojiList(messages)
-      if (Object.keys(channelUserEmojisMap).length > 0) {
-        for (let userId in channelUserEmojisMap) {
-          if (userIdEmojiList[userId]) {
-            userIdEmojiList[userId] = [
-              ...userIdEmojiList[userId],
-              ...channelUserEmojisMap[userId]
-            ]
-          } else {
-            userIdEmojiList[userId] = channelUserEmojisMap[userId]
-          }
+        channel: channel.id,
+        limit: message_limit
+      })
+      const channelUserEmojisMap = getEmojiList(messages)
+      for (let userId in channelUserEmojisMap) {
+        if (userIdEmojiList[userId]) {
+          userIdEmojiList[userId] = [
+            ...userIdEmojiList[userId],
+            ...channelUserEmojisMap[userId]
+          ]
+        } else {
+          userIdEmojiList[userId] = channelUserEmojisMap[userId]
         }
       }
     }
