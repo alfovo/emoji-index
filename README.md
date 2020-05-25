@@ -14,5 +14,4 @@ Alternatively, you can set variables in a `.env` file. The variables you can set
 
 - `TOKEN`: the token for your slack workplace
 - `PORT`: the port you would like the express application to run on
-- `IGNORED_EMOJIS`: emojis you would like to ignore separated by a space. For example: `'simple_smile slightly_smiling_face smile'`
 - `MESSAGE_LIMIT`: the number of messages per channel you'd like to tally emojis from. The upper limit is 1,000 and the default is 100.

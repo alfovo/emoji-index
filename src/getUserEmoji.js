@@ -59,33 +59,18 @@ async function allChannelsLookup(url, token) {
   return response.body.channels
 }
 
-function getUserIdNameMap(userInfo) {
-  const usersMap = {}
-  if (userInfo && userInfo.length > 0) {
-    for (var user of userInfo) {
-      if (
-        user.deleted !== true &&
-        !ignored_users.includes(user.profile.real_name)
-      ) {
-        usersMap[user.id] = user.profile.real_name
-      }
-    }
-  }
-  return usersMap
-}
-
 function listToTally(emojiList) {
-  let countObj = {}
+  let tally = {}
   if (emojiList && emojiList.length > 0) {
     for (var item of emojiList) {
-      if (countObj[item]) {
-        countObj[item]++
+      if (tally[item]) {
+        tally[item]++
       } else {
-        countObj[item] = 1
+        tally[item] = 1
       }
     }
   }
-  return countObj
+  return tally
 }
 
 function mergeTallies(tallies) {
@@ -171,7 +156,45 @@ function getEmojiList(messages) {
   return userIdEmojiMap
 }
 
-async function tallyForAllChannels(token, ignored_emojis, message_limit) {
+function getUserIdNameMap(userInfo) {
+  const usersMap = {}
+  if (userInfo && userInfo.length > 0) {
+    for (var user of userInfo) {
+      if (user.deleted !== true && !ignored_users.includes(user.real_name)) {
+        usersMap[user.id] = user.real_name
+      }
+    }
+  }
+  return usersMap
+}
+
+async function replaceNamesEmojis(token, userIdEmojiList) {
+  let userNameEmojiMaps = []
+  let formattedMojis = []
+  let favoriteEmojis = []
+  const allUsers = await allUsersLookup(usersUrl, token)
+  const users = await getUserIdNameMap(allUsers)
+  for (let [userId, emojiList] of Object.entries(userIdEmojiList)) {
+    if (users[userId] && Object.keys(emojiList).length > 0) {
+      formattedMojis = formatMojiData(emojiList)
+      userNameEmojiMaps.push({
+        name: users[userId],
+        emojis: formattedMojis
+      })
+      favoriteEmojis.push({
+        moji: formattedMojis[formattedMojis.length - 1].moji,
+        value: formattedMojis[formattedMojis.length - 1].value,
+        name: users[userId]
+      })
+    }
+  }
+  return {
+    userNameEmojiMaps: userNameEmojiMaps,
+    favoriteEmojis: favoriteEmojis
+  }
+}
+
+async function tallyForAllChannels(token, message_limit) {
   const allChannels = await allChannelsLookup(channelsUrl, token)
   let userIdEmojiList = {}
   for (var channel of allChannels) {
@@ -198,30 +221,7 @@ async function tallyForAllChannels(token, ignored_emojis, message_limit) {
     }
   }
 
-  return replaceNamesEmojis(userIdEmojiList, token, ignored_emojis)
-}
-
-async function replaceNamesEmojis(userIdEmojiList, token, ignored_emojis) {
-  let userNameEmojiMaps = []
-  let formattedMojis = []
-  let favoriteEmojis = []
-  const userInfo = await allUsersLookup(usersUrl, token)
-  const users = getUserIdNameMap(userInfo)
-  for (let [userId, emojiList] of Object.entries(userIdEmojiList)) {
-    if (users[userId] && Object.keys(emojiList).length > 0) {
-      formattedMojis = formatMojiData(emojiList)
-      userNameEmojiMaps.push({
-        name: users[userId],
-        emojis: formattedMojis
-      })
-      favoriteEmojis.push({
-        moji: formattedMojis[formattedMojis.length - 1].moji,
-        value: formattedMojis[formattedMojis.length - 1].value,
-        name: users[userId]
-      })
-    }
-  }
-  return { userNameEmojiMaps: userNameEmojiMaps, favoriteEmojis: favoriteEmojis }
+  return replaceNamesEmojis(token, userIdEmojiList)
 }
 
 module.exports = {
@@ -229,5 +229,6 @@ module.exports = {
   mergeTallies: mergeTallies,
   getEmojis: getEmojis,
   getEmojiList: getEmojiList,
-  tallyForAllChannels: tallyForAllChannels
+  tallyForAllChannels: tallyForAllChannels,
+  getUserIdNameMap: getUserIdNameMap
 }

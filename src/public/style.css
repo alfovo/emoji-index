@@ -4,9 +4,9 @@
 }
 
 body {
-  font-family: 'Lato', sans-serif;
+  font: 400 16px/1.5 avenir next, avenir, -apple-system, BlinkMacSystemFont,
+    helvetica neue, sans-serif;
   color: #4c4c4c;
-  background: #f6f5f3;
   width: 100%;
   max-width: 900px;
   margin: 2.5em auto;
@@ -19,7 +19,7 @@ body {
 
 @media only screen and (max-width: 900px) {
   body {
-    margin: 0px auto;
+    margin: 0 auto;
   }
   li {
     margin-right: 3em;
@@ -28,23 +28,17 @@ body {
 
 header {
   text-align: center;
-  background: #cfd8dc;
-  background-blend-mode: multiply;
-  background-size: cover;
+  background: #fb8c00;
 }
 
 h1 {
-  font-family: 'Baloo', cursive;
-  line-height: 3em;
-  margin-top: 0.5em;
-  margin-bottom: 1em;
+  font: 400 2.5em/0.025em 'Baloo', cursive;
+  padding: 1.5em 0em;
   color: #f9f8fd;
-  font-size: 2.5em;
-  letter-spacing: 0.025em;
 }
 
 h2 {
-  margin-left: 2em;
+  margin: 1em 0em 0.2em 2em;
 }
 
 li {

@@ -1,9 +1,4 @@
-import {
-  listToTally,
-  mergeTallies,
-  getEmojis,
-  getEmojiList
-} from './getUserEmoji.js'
+const getUserEmoji = require('./getUserEmoji')
 
 describe('the emojiCounter', () => {
   it('turns a list of emojis to a tally of emojis and their count', () => {
@@ -11,7 +6,7 @@ describe('the emojiCounter', () => {
     const text =
       '*thanks guys! and kudos as awlays to :woman-facepalming::skin-tone-2: :slightly_smiling_face: for :smile: working her magic* :slightly_smiling_face: '
     const emojis = text.match(emojiRegex)
-    const tally = listToTally(emojis)
+    const tally = getUserEmoji.listToTally(emojis)
 
     expect(tally).toEqual({
       ':skin-tone-2:': 1,
@@ -24,7 +19,7 @@ describe('the emojiCounter', () => {
   it('gets emojis', () => {
     const emojiRegex = /\:([a-z1-9-_]*?)\:/g
     const text = "already done :sunglasses: she's very on top of it!"
-    expect(getEmojis(emojiRegex, text)).toEqual(['sunglasses'])
+    expect(getUserEmoji.getEmojis(emojiRegex, text)).toEqual(['sunglasses'])
   })
 
   it('lists emojis', () => {
@@ -61,10 +56,10 @@ describe('the emojiCounter', () => {
       UC30ZFAL9: ['cat'],
       UBQPZ57AM: ['slightly_smiling_face', 'dance', 'slightly_smiling_face']
     }
-    expect(getEmojiList(messages)).toEqual(expectedResult)
+    expect(getUserEmoji.getEmojiList(messages)).toEqual(expectedResult)
   })
 
-  it('conversts list to tally', () => {
+  it('converts list to tally', () => {
     const list = [
       'mindblown',
       'robot_face',
@@ -88,7 +83,7 @@ describe('the emojiCounter', () => {
       'slightly_smiling_face'
     ]
 
-    expect(listToTally(list)).toEqual({
+    expect(getUserEmoji.listToTally(list)).toEqual({
       closed_lock_with_key: 1,
       dance: 2,
       'dancing-chicken': 1,
@@ -97,6 +92,44 @@ describe('the emojiCounter', () => {
       nerd_face: 1,
       robot_face: 3,
       slightly_smiling_face: 10
+    })
+  })
+
+  it('converts array of users with info to object', () => {
+    // I wish that is_bot was accurate, but alas...
+    expect(
+      getUserEmoji.getUserIdNameMap([
+        {
+          id: 'UT16EAU4V',
+          name: 'afvolpert',
+          deleted: false,
+          profile: {
+            real_name: 'Alex'
+          },
+          is_bot: false
+        },
+        {
+          id: 'UT3C47JTY',
+          name: 'german.capuano',
+          deleted: false,
+          profile: {
+            real_name: 'German'
+          },
+          is_bot: false
+        },
+        {
+          id: 'USLACKBOT',
+          name: 'slackbot',
+          deleted: false,
+          profile: {
+            real_name: 'Slackbot'
+          },
+          is_bot: false
+        }
+      ])
+    ).toEqual({
+      UT16EAU4V: 'Alex',
+      UT3C47JTY: 'German'
     })
   })
 
@@ -116,11 +149,11 @@ describe('the emojiCounter', () => {
     }
 
     const expectedTally = {
-      1: [ '🍱', '📝', '👀', '🤩', '😉', '🙇‍♂️', '🌱' ],
-      2: [ '🙂' ],
-      3: [ '🐶', '🍲' ],
+      1: ['🍱', '📝', '👀', '🤩', '😉', '🙇‍♂️', '🌱'],
+      2: ['🙂'],
+      3: ['🐶', '🍲'],
       5: ['🤖']
     }
-    expect(mergeTallies(tallies)).toEqual(expectedTally)
+    expect(getUserEmoji.mergeTallies(tallies)).toEqual(expectedTally)
   })
 })
