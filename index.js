@@ -15,7 +15,7 @@ app.set('views', path.join(__dirname, 'src/views'))
 app.set('view engine', 'html')
 app.use(express.static(path.join(__dirname, 'src/public')))
 
-app.get('/', async (req, res) => {
+app.get('/', (req, res) => {
   tallyForAllChannels(token, message_limit).then(mojis => {
     res.render('index', {
       favorites: mojis.favoriteEmojis,
