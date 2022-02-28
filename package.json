@@ -1,5 +1,5 @@
 {
-  "name": "emojiIndex",
+  "name": "emoji-index",
   "version": "1.0.0",
   "description": "tallies emojis for all users within the last 1000 messages for all slack channels within a slack team",
   "repository": "https://github.com/alfovo/emojiIndex",
@@ -18,7 +18,7 @@
     "request-promise-native": "^1.0.7"
   },
   "devDependencies": {
-    "jest": "^24.9.0",
+    "jest": "^27.5.1",
     "prettier": "1.14.3"
   },
   "engines": {
