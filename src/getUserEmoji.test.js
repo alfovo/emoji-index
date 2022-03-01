@@ -1,25 +1,73 @@
 const getUserEmoji = require('./getUserEmoji')
 
 describe('the emojiCounter', () => {
-  it('turns a list of emojis to a tally of emojis and their count', () => {
-    const emojiRegex = /\:(.*?)\:/g
+  it('gets list of emojis in a string, removing skin tone indicators and non-emoji strings that match the emojiRegex', () => {
     const text =
       '*thanks guys! and kudos as awlays to :woman-facepalming::skin-tone-2: :slightly_smiling_face: for :smile: working her magic* :slightly_smiling_face: '
-    const emojis = text.match(emojiRegex)
-    const tally = getUserEmoji.listToTally(emojis)
+    expect(
+      getUserEmoji.getEmojiListFromString(getUserEmoji.emojiRegex, text)
+    ).toEqual([
+      'woman-facepalming',
+      'slightly_smiling_face',
+      'smile',
+      'slightly_smiling_face'
+    ])
+  })
 
-    expect(tally).toEqual({
-      ':skin-tone-2:': 1,
-      ':slightly_smiling_face:': 2,
-      ':smile:': 1,
-      ':woman-facepalming:': 1
+  it('returns an empty array if there are no emojis in a string', () => {
+    const text = '*thanks guys! and kudos :aws as awlays :skin-tone-2:'
+    expect(
+      getUserEmoji.getEmojiListFromString(getUserEmoji.emojiRegex, text)
+    ).toEqual([])
+  })
+
+  it('turns a list of emojis to a tally of emojis and their count', () => {
+    const emojiList = [
+      'woman-facepalming',
+      'slightly_smiling_face',
+      'smile',
+      'slightly_smiling_face'
+    ]
+    // console.log(getUserEmoji.formatMojiData(emojiList))
+
+    expect(getUserEmoji.listToTally(emojiList)).toEqual({
+      slightly_smiling_face: 2,
+      smile: 1,
+      'woman-facepalming': 1
     })
   })
 
-  it('gets emojis', () => {
-    const emojiRegex = /\:([a-z1-9-_]*?)\:/g
-    const text = "already done :sunglasses: she's very on top of it!"
-    expect(getUserEmoji.getEmojis(emojiRegex, text)).toEqual(['sunglasses'])
+  it('combines tallys to create a new tally', () => {
+    const emojiList = [
+      'robot_face',
+      'robot_face',
+      'robot_face',
+      'robot_face',
+      'robot_face',
+      'bento',
+      'dog',
+      'dog',
+      'dog',
+      'stew',
+      'stew',
+      'stew',
+      'memo',
+      'eyes',
+      'star-struck',
+      'wink',
+      'slightly_smiling_face',
+      'bow',
+      'seedling',
+      'slightly_smiling_face'
+    ]
+
+    const expectedTally = [
+      { mojis: ['🍱', '📝', '👀', '🤩', '😉', '🙇‍♂️', '🌱'], value: 1 },
+      { mojis: ['🙂'], value: 2 },
+      { mojis: ['🐶', '🍲'], value: 3 },
+      { mojis: ['🤖'], value: 5 }
+    ]
+    expect(getUserEmoji.formatMojiData(emojiList)).toEqual(expectedTally)
   })
 
   it('lists emojis', () => {
@@ -56,7 +104,7 @@ describe('the emojiCounter', () => {
       UC30ZFAL9: ['cat'],
       UBQPZ57AM: ['slightly_smiling_face', 'dance', 'slightly_smiling_face']
     }
-    expect(getUserEmoji.getUserIdEmojiListMap(messages)).toEqual(expectedResult)
+    expect(getUserEmoji.getEmojiListPerUserId(messages)).toEqual(expectedResult)
   })
 
   it('converts list to tally', () => {
@@ -131,29 +179,5 @@ describe('the emojiCounter', () => {
       UT16EAU4V: 'Alex',
       UT3C47JTY: 'German'
     })
-  })
-
-  it('combines tallys to create a new tally', () => {
-    const tallies = {
-      robot_face: 5,
-      bento: 1,
-      dog: 3,
-      stew: 3,
-      memo: 1,
-      eyes: 1,
-      'star-struck': 1,
-      wink: 1,
-      slightly_smiling_face: 2,
-      bow: 1,
-      seedling: 1
-    }
-
-    const expectedTally = {
-      1: ['🍱', '📝', '👀', '🤩', '😉', '🙇‍♂️', '🌱'],
-      2: ['🙂'],
-      3: ['🐶', '🍲'],
-      5: ['🤖']
-    }
-    expect(getUserEmoji.mergeTallies(tallies)).toEqual(expectedTally)
   })
 })
