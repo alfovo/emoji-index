@@ -1,6 +1,7 @@
-# Intellij
+# ide
 .idea/workspace.xml
 .DS_Store
+.vscode/
 
 # Logs
 logs

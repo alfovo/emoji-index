@@ -56,7 +56,7 @@ describe('the emojiCounter', () => {
       UC30ZFAL9: ['cat'],
       UBQPZ57AM: ['slightly_smiling_face', 'dance', 'slightly_smiling_face']
     }
-    expect(getUserEmoji.getEmojiList(messages)).toEqual(expectedResult)
+    expect(getUserEmoji.getUserIdEmojiListMap(messages)).toEqual(expectedResult)
   })
 
   it('converts list to tally', () => {
