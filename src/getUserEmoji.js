@@ -42,17 +42,14 @@ async function apiRequest(uri, qs) {
 }
 
 function listToTally(emojiList) {
-  let tally = {}
-  if (emojiList) {
-    for (let item of emojiList) {
-      if (tally[item]) {
-        tally[item]++
-      } else {
-        tally[item] = 1
-      }
+  return emojiList.reduce(function(tally, emoji) {
+    if (tally[emoji]) {
+      tally[emoji]++
+    } else {
+      tally[emoji] = 1
     }
-  }
-  return tally
+    return tally
+  }, {})
 }
 
 function mergeTallies(tallies) {
