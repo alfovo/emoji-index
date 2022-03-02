@@ -30,6 +30,8 @@ const ignored_users = [
   'Toast'
 ]
 
+const emojiRegex = /:([a-z1-9-_]*?):/g
+
 async function apiRequest(uri, qs) {
   return (await request({
     uri,
@@ -41,44 +43,9 @@ async function apiRequest(uri, qs) {
   })).body
 }
 
-function listToTally(emojiList) {
-  return emojiList.reduce(function(tally, emoji) {
-    if (tally[emoji]) {
-      tally[emoji]++
-    } else {
-      tally[emoji] = 1
-    }
-    return tally
-  }, {})
-}
-
-function mergeTallies(tallies) {
-  let mergedTally = {}
-  for (let [emojiName, count] of Object.entries(tallies)) {
-    let moji = emoji.get([emojiName])
-    if (mergedTally[count]) {
-      mergedTally[count].push(moji)
-    } else {
-      mergedTally[count] = [moji]
-    }
-  }
-  return mergedTally
-}
-
-function convertToArrayFormat(mergedTally) {
-  return Object.entries(mergedTally).map(([value, mojis]) => ({
-    value,
-    mojis
-  }))
-}
-
-function formatMojiData(emojiList) {
-  const emojiCounts = listToTally(emojiList)
-  const mergedEmojiCounts = mergeTallies(emojiCounts)
-  return convertToArrayFormat(mergedEmojiCounts)
-}
-
-function getEmojis(regex, text) {
+// converts a string containing emojis to an array of emoji names,
+// removing skin tone indicators and non-emoji strings that match the emojiRegex.
+function getEmojiListFromString(regex, text) {
   let excluded = [
     'us-east-1',
     'aws',
@@ -96,7 +63,7 @@ function getEmojis(regex, text) {
   ]
   let emojis = text.match(regex)
   if (emojis === null) {
-    return null
+    return []
   }
   let cleanedEmojis = emojis.map(emoji => emoji.replace(/:/gi, '')).filter(
     strippedEmoji =>
@@ -108,26 +75,42 @@ function getEmojis(regex, text) {
   return cleanedEmojis
 }
 
-function getUserIdEmojiListMap(messages) {
-  const emojiRegex = /\:([a-z1-9-_]*?)\:/g
-  const userIdEmojiListMap = {}
-  for (var message of messages) {
-    let emojis = getEmojis(emojiRegex, message.text)
-    if (emojis && emojis.length > 0) {
-      if (userIdEmojiListMap[message.user]) {
-        userIdEmojiListMap[message.user] = [
-          ...userIdEmojiListMap[message.user],
-          ...emojis
-        ]
-      } else if (message.user) {
-        userIdEmojiListMap[message.user] = emojis
-      }
+// Converts [':robot_face:', ':dog:', ':robot_face:', ':bento:', ':dog:']
+// to { ':robot_face:': 2, ':bento:': 1, ':dog:': 2 }
+function listToTally(emojiList) {
+  return emojiList.reduce(function(tally, emojiName) {
+    if (tally[emojiName]) {
+      tally[emojiName]++
+    } else {
+      tally[emojiName] = 1
+    }
+    return tally
+  }, {})
+}
+
+// Converts [':robot_face:', ':dog:', ':robot_face:', ':bento:', ':dog:']
+// to [{ value: '1', mojis: ['🍱']}, { value: '2', mojis: ['🐶', '🤖'] }]
+function formatEmojiData(emojiList) {
+  const emojiCounts = listToTally(emojiList)
+
+  let mergedTally = []
+  for (let [emojiName, value] of Object.entries(emojiCounts)) {
+    // look up emoji image, the 'moji', by name
+    let moji = emoji.get([emojiName])
+    // this will create empty indexes in the array that are removed later
+    if (mergedTally[value]) {
+      mergedTally[value]['mojis'].push(moji)
+    } else {
+      mergedTally[value] = { value, mojis: [moji] }
     }
   }
 
-  return userIdEmojiListMap
+  // remove empty indexes
+  return mergedTally.filter(item => item)
 }
 
+// converts array of user data from the slack API to
+// { userId1: 'Alex', userId2: 'German'}
 function getUserIdNameMap(userInfoArray) {
   return userInfoArray.reduce(function(users, user) {
     if (
@@ -141,25 +124,45 @@ function getUserIdNameMap(userInfoArray) {
   }, {})
 }
 
-async function replaceIdsWithNamesAndTallyEmojis(
-  userInfoArray,
-  userIdEmojiTallyMap
-) {
+// converts array of user message data from the slack API to
+// { userId1: ['cat'], userId2: ['slightly_smiling_face', 'dance', 'slightly_smiling_face'] }
+// If you've never used an emoji you will not be included in userIds to emojis mapping
+function getEmojiListPerUserId(messages) {
+  return messages.reduce(function(userIdEmojiListMap, message) {
+    let emojis = getEmojiListFromString(emojiRegex, message.text)
+    if (emojis && emojis.length > 0) {
+      if (userIdEmojiListMap[message.user]) {
+        userIdEmojiListMap[message.user] = [
+          ...userIdEmojiListMap[message.user],
+          ...emojis
+        ]
+      } else if (message.user) {
+        userIdEmojiListMap[message.user] = emojis
+      }
+    }
+
+    return userIdEmojiListMap
+  }, {})
+}
+
+// This function is very overloaded for the sake of only iterating through the
+// userIdEmojiListMap once. It replaces userId with the user's name, formats the
+// emoji list into a tally and returns a second object with each user's favorite emoji
+function formatUserEmojiData(userIdNameMap, userIdEmojiListMap) {
   const userNameEmojisArray = []
-  const formattedMojis = []
   const favoriteEmojis = []
-  const users = getUserIdNameMap(userInfoArray)
-  for (let [userId, emojiList] of Object.entries(userIdEmojiTallyMap)) {
-    if (users[userId] && Object.keys(emojiList).length > 0) {
-      formattedMojis = formatMojiData(emojiList)
+
+  for (let [userId, emojis] of Object.entries(userIdEmojiListMap)) {
+    if (userIdNameMap[userId]) {
+      const formattedEmojis = formatEmojiData(emojis)
       userNameEmojisArray.push({
-        name: users[userId],
-        emojis: formattedMojis
+        name: userIdNameMap[userId],
+        emojis: formattedEmojis
       })
       favoriteEmojis.push({
-        moji: formattedMojis[formattedMojis.length - 1].moji,
-        value: formattedMojis[formattedMojis.length - 1].value,
-        name: users[userId]
+        moji: formattedEmojis[formattedEmojis.length - 1].mojis,
+        value: formattedEmojis[formattedEmojis.length - 1].value,
+        name: userIdNameMap[userId]
       })
     }
   }
@@ -176,7 +179,10 @@ async function tallyForAllChannels(token, message_limit) {
       'Unable to find any users in this slack workspace. Please verify that you are using the correct API token.'
     )
   }
+  const userIdNameMap = getUserIdNameMap(userInfoArray)
 
+  // allMessages might be an overwhelming number of messages.
+  const allMessages = []
   const { channels } = await apiRequest(channelsUrl, {
     token
   })
@@ -185,42 +191,35 @@ async function tallyForAllChannels(token, message_limit) {
       'Unable to find any channels in this slack workspace. Please verify that you are using the correct API token.'
     )
   }
-  const userIdEmojiListAllChannelsMap = {}
   for (let channel of channels) {
     if (channel.is_member !== true) {
       console.log(`User is not a member of ${channel}, skipping messages.`)
       continue
     }
-    const { messages } = await apiRequest(conversationUrl, {
+    const { channelMessages } = await apiRequest(conversationUrl, {
       token,
       channel: channel.id,
       limit: message_limit
     })
-    if (!messages) {
+    if (!channelMessages) {
       console.log(`Unable to find any messages in ${channel}. `)
       continue
     }
-    const userIdEmojiListMap = getUserIdEmojiListMap(messages)
-    for (let userId in userIdEmojiListMap) {
-      if (userIdEmojiListAllChannelsMap[userId]) {
-        userIdEmojiListAllChannelsMap[userId] = [
-          ...userIdEmojiListAllChannelsMap[userId],
-          ...userIdEmojiListMap[userId]
-        ]
-      } else {
-        userIdEmojiListAllChannelsMap[userId] = userIdEmojiListMap[userId]
-      }
-    }
+    allMessages.concat(channelMessages)
   }
 
-  return replaceIdsWithNamesAndTallyEmojis(userInfoArray, userIdEmojiTallyMap)
+  const userIdEmojiListMap = getEmojiListPerUserId(allMessages)
+
+  return formatUserEmojiData(userIdNameMap, userIdEmojiListMap)
 }
 
 module.exports = {
+  emojiRegex: emojiRegex,
   listToTally: listToTally,
-  mergeTallies: mergeTallies,
-  getEmojis: getEmojis,
-  getUserIdEmojiListMap: getUserIdEmojiListMap,
+  formatEmojiData: formatEmojiData,
+  formatUserEmojiData: formatUserEmojiData,
+  getEmojiListFromString: getEmojiListFromString,
+  getEmojiListPerUserId: getEmojiListPerUserId,
   tallyForAllChannels: tallyForAllChannels,
   getUserIdNameMap: getUserIdNameMap
 }
