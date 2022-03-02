@@ -19,6 +19,7 @@
     "request-promise-native": "^1.0.7"
   },
   "devDependencies": {
+    "eslint": "^8.10.0",
     "jest": "^27.5.1",
     "prettier": "1.14.3"
   },
