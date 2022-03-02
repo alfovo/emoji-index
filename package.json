@@ -2,8 +2,12 @@
   "name": "emoji-index",
   "version": "1.0.0",
   "description": "tallies emojis for all users within the last 1000 messages for all slack channels within a slack team",
-  "repository": "https://github.com/alfovo/emojiIndex",
-  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alfovo/mysterious-comments.git"
+  },
+  "author": "alfovo",
+  "license": "MIT",
   "scripts": {
     "dev": "nodemon ./index.js",
     "test": "jest",
