@@ -6,7 +6,7 @@ describe('the emojiCounter', () => {
     const text =
       '*thanks guys! and kudos as awlays to :woman-facepalming::skin-tone-2: :slightly_smiling_face: for :smile: working her magic* :slightly_smiling_face: '
     expect(
-      getUserEmoji.getEmojiListFromString(getUserEmoji.emojiRegex, text)
+      getUserEmoji.getEmojisFromString(getUserEmoji.emojiRegex, text)
     ).toEqual([
       'woman-facepalming',
       'slightly_smiling_face',
@@ -18,23 +18,8 @@ describe('the emojiCounter', () => {
   it('returns an empty array if there are no emojis in a string', () => {
     const text = '*thanks guys! and kudos :aws as awlays :skin-tone-2:'
     expect(
-      getUserEmoji.getEmojiListFromString(getUserEmoji.emojiRegex, text)
+      getUserEmoji.getEmojisFromString(getUserEmoji.emojiRegex, text)
     ).toEqual([])
-  })
-
-  it('turns a list of emojis to a tally of emojis and their count', () => {
-    const emojiList = [
-      'woman-facepalming',
-      'slightly_smiling_face',
-      'smile',
-      'slightly_smiling_face'
-    ]
-
-    expect(getUserEmoji.listToTally(emojiList)).toEqual({
-      slightly_smiling_face: 2,
-      smile: 1,
-      'woman-facepalming': 1
-    })
   })
 
   it('converts an emoji list to tally of emojis per the frequency the occur in the \
@@ -62,21 +47,23 @@ describe('the emojiCounter', () => {
       'slightly_smiling_face'
     ]
 
-    expect(getUserEmoji.listToTally(list)).toEqual({
-      closed_lock_with_key: 1,
-      dance: 2,
-      'dancing-chicken': 1,
-      female_vampire: 1,
-      mindblown: 1,
-      nerd_face: 1,
-      robot_face: 3,
-      slightly_smiling_face: 10
-    })
+    expect(getUserEmoji.getTallyfromList(list)).toEqual(
+      new Map([
+        ['closed_lock_with_key', 1],
+        ['dance', 2],
+        ['dancing-chicken', 1],
+        ['female_vampire', 1],
+        ['mindblown', 1],
+        ['nerd_face', 1],
+        ['robot_face', 3],
+        ['slightly_smiling_face', 10]
+      ])
+    )
   })
 
   it('converts a list of emojis to a list of objects containing a list of emojis and \
   the value or frequency that they occur in the original list', () => {
-    const emojiList = [
+    const Emojis = [
       'robot_face',
       'robot_face',
       'robot_face',
@@ -99,7 +86,7 @@ describe('the emojiCounter', () => {
       'slightly_smiling_face'
     ]
 
-    expect(getUserEmoji.formatEmojiData(emojiList)).toEqual([
+    expect(getUserEmoji.formatEmojiData(Emojis)).toEqual([
       { mojis: ['🍱', '📝', '👀', '🤩', '😉', '🙇‍♂️', '🌱'], value: 1 },
       { mojis: ['🙂'], value: 2 },
       { mojis: ['🐶', '🍲'], value: 3 },
@@ -146,7 +133,7 @@ describe('the emojiCounter', () => {
         team: 'T0440STUL'
       }
     ]
-    expect(getUserEmoji.getEmojiListPerUserId(messages)).toEqual({
+    expect(getUserEmoji.getEmojisPerUserId(messages)).toEqual({
       UC30ZFAL9: ['cat'],
       UBQPZ57AM: ['slightly_smiling_face', 'dance', 'slightly_smiling_face']
     })
@@ -184,25 +171,22 @@ describe('the emojiCounter', () => {
           is_bot: false
         }
       ])
-    ).toEqual({
-      UT16EAU4V: 'Alex',
-      UT3C47JTY: 'German'
-    })
+    ).toEqual(new Map([['UT16EAU4V', 'Alex'], ['UT3C47JTY', 'German']]))
   })
 
   it("replaces userId with the user's name, formats the emoji list into a tally and \
   returns a second object with each user's favorite emoji", () => {
-    const userIdNameMap = {
-      UT16EAU4V: 'Alex',
-      UT3C47JTY: 'German'
-    }
-    const userIdEmojiListMap = {
+    const userIdNameMap = new Map([
+      ['UT16EAU4V', 'Alex'],
+      ['UT3C47JTY', 'German']
+    ])
+    const userIdEmojis = {
       UT16EAU4V: ['cat'],
       UT3C47JTY: ['slightly_smiling_face', 'stew', 'slightly_smiling_face']
     }
 
     expect(
-      getUserEmoji.formatUserEmojiData(userIdNameMap, userIdEmojiListMap)
+      getUserEmoji.formatUserEmojiData(userIdNameMap, userIdEmojis)
     ).toEqual({
       favoriteEmojis: [
         {
@@ -240,6 +224,34 @@ describe('the emojiCounter', () => {
           name: 'German'
         }
       ]
+    })
+  })
+
+  it('when formatting User and Emoji data it handles empty user and/or emoji data.', () => {
+    expect(getUserEmoji.formatUserEmojiData({}, {})).toEqual({
+      favoriteEmojis: [],
+      userNameEmojisArray: []
+    })
+
+    const userIdNameMap = new Map([
+      ['UT16EAU4V', 'Alex'],
+      ['UT3C47JTY', 'German']
+    ])
+
+    expect(getUserEmoji.formatUserEmojiData(userIdNameMap, {})).toEqual({
+      favoriteEmojis: [],
+      userNameEmojisArray: []
+    })
+
+    const userIdEmojisMap = {
+      UT16EAU4V: ['cat'],
+      UT3C47JTY: ['slightly_smiling_face', 'stew', 'slightly_smiling_face']
+    }
+    expect(
+      getUserEmoji.formatUserEmojiData(new Map(), userIdEmojisMap)
+    ).toEqual({
+      favoriteEmojis: [],
+      userNameEmojisArray: []
     })
   })
 })
